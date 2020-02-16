@@ -7,11 +7,6 @@ RUN wget https://kong.bintray.com/kuma/kuma-0.3.2-ubuntu-amd64.tar.gz && \
 RUN mkdir -p /etc/kuma
 ADD config/kuma-cp.defaults.yaml /etc/kuma
 
-RUN mkdir /kuma
-COPY templates/LICENSE /kuma
-COPY templates/NOTICE /kuma
-COPY templates/README /kuma
-
 USER nobody:nobody
 
 ENTRYPOINT ["kuma-cp"]
