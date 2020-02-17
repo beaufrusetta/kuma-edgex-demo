@@ -88,6 +88,16 @@ services:
       - kuma-control-plane
     restart: on-failure
 
+  edgex-cli:
+    image: edgex/cli:latest
+    command:
+      - sh
+      - -c
+      - sleep 31536000
+    networks:
+      edgex-network: {}
+    restart: on-failure
+
   # No idea what this is for...
   volume:
     image: edgexfoundry/docker-edgex-volume:1.1.0
