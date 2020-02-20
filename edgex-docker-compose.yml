@@ -1,12 +1,19 @@
 version: '3.5'
 
-# all common shared environment variables defined here:
+# -----------------------------------------------------------------------------
+# Env Variables ---------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
 x-common-env-variables: &common-variables
   EDGEX_SECURITY_SECRET_STORE: "false"
   edgex_registry: consul://edgex-core-consul:8500
   Clients_CoreData_Host: edgex-core-data
   Clients_Logging_Host: edgex-support-logging
   Logging_EnableRemote: "true"
+
+# -----------------------------------------------------------------------------
+# EdgeX Volumes ---------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 volumes:
   db-data:
@@ -17,11 +24,25 @@ volumes:
   portainer_data:
   sidecar-data:
 
+# -----------------------------------------------------------------------------
+# EdgeX Services w/Service Mesh (Kuma) ----------------------------------------
+# -----------------------------------------------------------------------------
+
 services:
 
-# -----------------------------------------------------------------------------
-# Kuma - Base Image -----------------------------------------------------------
-# -----------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # Kuma - Base Image ---------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # 
+  #   This is the base image I'm using to build the other images off of with 
+  #   multi-stage builds (of sorts). I use this one to basically download 
+  #   the pre-compiled binaries a single time, extract the binaries I want, 
+  #   and then load them to a local dir in that image.
+  #
+  #   As you can see in the dockerfile declarations after this one, I use the 
+  #   COPY command to bring in the specific binaries to the 3 images below.
+  # 
+  # ---------------------------------------------------------------------------
 
   kuma-base-image:
     image: kuma/base-image:0.3.2
@@ -29,9 +50,17 @@ services:
       context: .
       dockerfile: base-image.dockerfile
 
-# -----------------------------------------------------------------------------
-# Kuma - Control Plane Image --------------------------------------------------
-# -----------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # Kuma - Control Plane Image ------------------------------------------------
+  # ---------------------------------------------------------------------------
+  #
+  #   This is the image that holds and runs `kuma-cp`. This is the main 
+  #   control plane binary that manages all of the data planes attached to 
+  #   all the networked EdgeX services defined below.
+  #
+  #   https://kuma.io/docs/0.3.2/documentation/overview/
+  #
+  # ---------------------------------------------------------------------------
 
   kuma-cp-image:
     image: kuma/kuma-cp:0.3.2
@@ -39,9 +68,9 @@ services:
       context: .
       dockerfile: kuma-cp.dockerfile
 
-# -----------------------------------------------------------------------------
-# Kuma - Data Plane Image -----------------------------------------------------
-# -----------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # Kuma - Data Plane Image ---------------------------------------------------
+  # ---------------------------------------------------------------------------
 
   kuma-dp-image:
     image: kuma/kuma-dp:0.3.2
@@ -49,9 +78,19 @@ services:
       context: .
       dockerfile: kuma-dp.dockerfile
 
-# -----------------------------------------------------------------------------
-# Kuma - Control Plane --------------------------------------------------------
-# -----------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # Kuma - Control CLI Image --------------------------------------------------
+  # ---------------------------------------------------------------------------
+
+  kumactl-image:
+    image: kuma/kumactl:0.3.2
+    build:
+      context: .
+      dockerfile: kumactl.dockerfile
+
+  # ---------------------------------------------------------------------------
+  # Kuma - Control Plane ------------------------------------------------------
+  # ---------------------------------------------------------------------------
  
   kuma-control-plane:
     image: kuma/kuma-cp:0.3.2
@@ -91,9 +130,17 @@ services:
           - kuma-control-plane
     restart: on-failure
 
-# -----------------------------------------------------------------------------
-# Kuma - Control CLI ----------------------------------------------------------
-# -----------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # Kuma - Control CLI --------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  #
+  #   The use of this container is not necessary for the service mesh to run, 
+  #   I only bring this one along because it's easy to pop in to it and 
+  #   configure the policies for demo with the following syntax:
+  #
+  #     $ cat <policy.yaml file> | kumactl apply -f -
+  #
+  # ---------------------------------------------------------------------------
 
   kumactl:
     image: kuma/kumactl:0.3.2
