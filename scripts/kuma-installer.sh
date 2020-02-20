@@ -73,15 +73,15 @@ networking:
       tags:
         service: edgex-core-consul"
 
-create_dataplane "edgex-mongo" "
+create_dataplane "edgex-redis" "
 type: Dataplane
 mesh: default
-name: edgex-mongo
+name: edgex-redis
 networking:
   inbound:
-    - interface: {{ IP }}:58017:27017
+    - interface: {{ IP }}:56379:6379
       tags:
-        service: edgex-mongo"
+        service: edgex-redis"
 
 create_dataplane "edgex-support-logging" "
 type: Dataplane
@@ -176,29 +176,6 @@ networking:
       tags:
         service: edgex-support-rulesengine"
 
-# create_dataplane "edgex-export-client" "
-# type: Dataplane
-# mesh: default
-# name: edgex-export-client
-# networking:
-#   inbound:
-#     - interface: {{ IP }}:58071:48071
-#       tags:
-#         service: edgex-export-client"
-
-# create_dataplane "edgex-export-distro" "
-# type: Dataplane
-# mesh: default
-# name: edgex-export-distro
-# networking:
-#   inbound:
-#     - interface: {{ IP }}:58070:48070
-#       tags:
-#         service: edgex-export-distro
-#     - interface: {{ IP }}:55566:5566
-#       tags:
-#         service: edgex-export-distro"
-
 create_dataplane "edgex-device-virtual" "
 type: Dataplane
 mesh: default
@@ -208,23 +185,3 @@ networking:
     - interface: {{ IP }}:59990:49990
       tags:
         service: edgex-device-virtual"
-
-create_dataplane "edgex-ui-go" "
-type: Dataplane
-mesh: default
-name: edgex-ui-go
-networking:
-  inbound:
-    - interface: {{ IP }}:54000:4000
-      tags:
-        service: edgex-ui-go"
-
-create_dataplane "edgex-portainer" "
-type: Dataplane
-mesh: default
-name: edgex-portainer
-networking:
-  inbound:
-    - interface: {{ IP }}:59000:9000
-      tags:
-        service: edgex-portainer"
