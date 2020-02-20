@@ -167,7 +167,8 @@ defaults:
     type: Mesh
     name: default
     mtls:
-      ca: {}
+      ca:
+        builtin: {}
       enabled: false
 
 # Reports configuration

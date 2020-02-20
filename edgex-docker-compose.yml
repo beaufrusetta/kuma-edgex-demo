@@ -71,6 +71,8 @@ services:
   # ---------------------------------------------------------------------------
   # Kuma - Data Plane Image ---------------------------------------------------
   # ---------------------------------------------------------------------------
+  # (placeholder)
+  # ---------------------------------------------------------------------------
 
   kuma-dp-image:
     image: kuma/kuma-dp:0.3.2
@@ -97,8 +99,10 @@ services:
     volumes:
       - ./certs/server:/certs/server
       - ./certs/client/cert.pem:/certs/client/cert.pem
+      - ./config:/etc/kuma
     command:
       - run
+      - -c=/etc/kuma/kuma-cp.defaults.yaml
       - --log-level=info
     environment:
       - KUMA_GENERAL_ADVERTISED_HOSTNAME=kuma-control-plane
@@ -108,14 +112,6 @@ services:
       - KUMA_DATAPLANE_TOKEN_SERVER_PUBLIC_TLS_CERT_FILE=/certs/server/cert.pem
       - KUMA_DATAPLANE_TOKEN_SERVER_PUBLIC_TLS_KEY_FILE=/certs/server/key.pem
       - KUMA_DATAPLANE_TOKEN_SERVER_PUBLIC_CLIENT_CERTS_DIR=/certs/client
-    expose:
-      - "5678"
-      - "5679"
-      - "5680"
-      - "5681"
-      - "5682"
-      - "5683"
-      - "5684"
     ports:
       - "5678:5678"
       - "5679:5679"
@@ -145,7 +141,7 @@ services:
   kumactl:
     image: kuma/kumactl:0.3.2
     volumes:
-    - ./policies:/kuma-example/policies
+    - ./policies:/kuma/policies
     command:
     - sh
     - -c
@@ -156,9 +152,9 @@ services:
       - kuma-control-plane
     restart: on-failure
 
-# -----------------------------------------------------------------------------
-# Kuma - Installer ------------------------------------------------------------
-# -----------------------------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # Kuma - Installer ----------------------------------------------------------
+  # ---------------------------------------------------------------------------
   
   kuma-installer:
     image: kuma/kumactl:0.3.2
@@ -175,10 +171,16 @@ services:
       - kuma-control-plane
     restart: on-failure
 
-# -----------------------------------------------------------------------------
-# EdgeX - Volume
-# -----------------------------------------------------------------------------
-# Really have no idea why this is still kept around. It provides no value. 
+  # ---------------------------------------------------------------------------
+  # EdgeX - Volume
+  # ---------------------------------------------------------------------------
+  #
+  #   When looking at this container, I don't think there is much value in 
+  #   keeping this container around anymore. The only files it carries is 
+  #   the consul configuration files, however, those files are now injected 
+  #   into the consul image during build time.
+  #
+  # ---------------------------------------------------------------------------
 
   volume:
     image: nexus3.edgexfoundry.org:10004/docker-edgex-volume:master
@@ -191,17 +193,28 @@ services:
       - consul-config:/consul/config:z
       - consul-data:/consul/data:z
 
-# -----------------------------------------------------------------------------
-# EdgeX - Consul
-# -----------------------------------------------------------------------------
-# Consul setup - including namespace, app, and sidecar.  
+  # ---------------------------------------------------------------------------
+  # EdgeX - Consul
+  # ---------------------------------------------------------------------------
+  #
+  #   consul-namespace: this container is used to attach to the 
+  #     edgex-network and exposes the appropriate ports for Consul.
+  #
+  #   consul-sidecar: this container is the lightweight proxy container 
+  #     that filters all inbound/outbound network traffic. This container 
+  #     is configured via the Kuma Control Plane. 
+  #
+  #   consul: this is the container running the Consul app - it is attached 
+  #     to the consul-namespace using the "network_mode" option. Using 
+  #     "network_mode" allows the container to attach to the network 
+  #     namespace of the specified service. This is very similar to attaching 
+  #     a container to a docker network. 
+  #
+  # ---------------------------------------------------------------------------
 
   consul-namespace:
     image: busybox:1.31.0
     command: ["sleep", "infinity"]
-    expose: 
-      - "8400"
-      - "8500"
     ports:
       - "8400:58400"
       - "8500:58500"
@@ -244,11 +257,13 @@ services:
     volumes:
       - sidecar-data:/sidecar-data
 
-# -----------------------------------------------------------------------------
-# EdgeX - Config Seed
-# -----------------------------------------------------------------------------
-# I'm really unsure what all this is doing as well. Doesn't seem like it is 
-# a service EdgeX needs anymore?
+  # ---------------------------------------------------------------------------
+  # EdgeX - Config Seed
+  # ---------------------------------------------------------------------------
+  # 
+  #   (placeholder)
+  # 
+  # ---------------------------------------------------------------------------
 
   config-seed:
     image: nexus3.edgexfoundry.org:10004/docker-core-config-seed-go:master
@@ -265,7 +280,12 @@ services:
       - volume
       - consul
 
+  # ---------------------------------------------------------------------------
   # EdgeX - Redis
+  # ---------------------------------------------------------------------------
+  #
+  #   (placeholder)
+  #
   # ---------------------------------------------------------------------------
 
   redis-namespace:
@@ -307,7 +327,12 @@ services:
     volumes:
       - sidecar-data:/sidecar-data
 
+  # ---------------------------------------------------------------------------
   # EdgeX - Logging Service
+  # ---------------------------------------------------------------------------
+  #
+  #   (placeholder)
+  #
   # ---------------------------------------------------------------------------
   
   logging-namespace:
@@ -353,7 +378,12 @@ services:
     volumes:
       - sidecar-data:/sidecar-data
 
+  # ---------------------------------------------------------------------------
   # EdgeX - System Management Service
+  # ---------------------------------------------------------------------------
+  #
+  #   (placeholder)
+  #
   # ---------------------------------------------------------------------------
 
   system-namespace:
@@ -398,7 +428,12 @@ services:
     volumes:
       - sidecar-data:/sidecar-data
 
-  # EdgeX - Notifications Service
+  # ---------------------------------------------------------------------------
+  # EdgeX - Notification Service
+  # ---------------------------------------------------------------------------
+  #
+  #   (placeholder)
+  #
   # ---------------------------------------------------------------------------
   
   notifications-namespace:
@@ -442,7 +477,12 @@ services:
     volumes:
       - sidecar-data:/sidecar-data
 
+  # ---------------------------------------------------------------------------
   # EdgeX - Metadata Service
+  # ---------------------------------------------------------------------------
+  #
+  #   (placeholder)
+  #
   # ---------------------------------------------------------------------------
   
   metadata-namespace:
@@ -486,7 +526,12 @@ services:
     volumes:
       - sidecar-data:/sidecar-data
 
+  # ---------------------------------------------------------------------------
   # EdgeX - Core Data Service
+  # ---------------------------------------------------------------------------
+  #
+  #   (placeholder)
+  #
   # ---------------------------------------------------------------------------
   
   data-namespace:
@@ -530,7 +575,12 @@ services:
     volumes:
       - sidecar-data:/sidecar-data
 
+  # ---------------------------------------------------------------------------
   # EdgeX - Command Service
+  # ---------------------------------------------------------------------------
+  #
+  #   (placeholder)
+  #
   # ---------------------------------------------------------------------------
   
   command-namespace:
@@ -573,7 +623,12 @@ services:
     volumes:
       - sidecar-data:/sidecar-data
 
+  # ---------------------------------------------------------------------------
   # EdgeX - Scheduler Service
+  # ---------------------------------------------------------------------------
+  #
+  #   (placeholder)
+  #
   # ---------------------------------------------------------------------------
   
   scheduler-namespace:
@@ -618,7 +673,12 @@ services:
     volumes:
       - sidecar-data:/sidecar-data
 
+  # ---------------------------------------------------------------------------
   # EdgeX - App Service Rules Service
+  # ---------------------------------------------------------------------------
+  #
+  #   (placeholder)
+  #
   # ---------------------------------------------------------------------------
   
   app-service-rules-namespace:
@@ -655,7 +715,7 @@ services:
     image: kuma/kuma-dp:0.3.2
     command:
       - run
-      - --log-level=info
+      - --log-level=debug
     environment:
       - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
       - KUMA_DATAPLANE_MESH=default
@@ -669,7 +729,12 @@ services:
     volumes:
       - sidecar-data:/sidecar-data
 
+  # ---------------------------------------------------------------------------
   # EdgeX - Rules Engine Service
+  # ---------------------------------------------------------------------------
+  #
+  #   (placeholder)
+  #
   # ---------------------------------------------------------------------------
   
   rulesengine-namespace:
@@ -710,9 +775,13 @@ services:
     volumes:
       - sidecar-data:/sidecar-data
 
-#################################################################
-# Device Services
-#################################################################
+  # ---------------------------------------------------------------------------
+  # EdgeX - Device Virtual Service
+  # ---------------------------------------------------------------------------
+  #
+  #   (placeholder)
+  #
+  # ---------------------------------------------------------------------------
 
   device-virtual-namespace:
     image: busybox:1.31.0
@@ -753,6 +822,13 @@ services:
     volumes:
       - sidecar-data:/sidecar-data
 
+# -----------------------------------------------------------------------------
+# EdgeX - Network Definition
+# -----------------------------------------------------------------------------
+#
+#   (placeholder)
+#
+# -----------------------------------------------------------------------------
 
 networks:
   edgex-network: {}
