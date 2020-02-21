@@ -103,7 +103,7 @@ services:
     command:
       - run
       - -c=/etc/kuma/kuma-cp.defaults.yaml
-      - --log-level=info
+      - --log-level=debug
     environment:
       - KUMA_GENERAL_ADVERTISED_HOSTNAME=kuma-control-plane
       - KUMA_DATAPLANE_TOKEN_SERVER_PUBLIC_ENABLED=true
@@ -227,7 +227,7 @@ services:
     restart: on-failure
     
   consul:
-    image: consul:1.3.1
+    image: edgexfoundry/docker-edgex-consul:0.0.0
     network_mode: service:consul-namespace
     volumes:
       - log-data:/edgex/logs
@@ -266,7 +266,7 @@ services:
   # ---------------------------------------------------------------------------
 
   config-seed:
-    image: nexus3.edgexfoundry.org:10004/docker-core-config-seed-go:master
+    image: edgexfoundry/docker-core-config-seed-go:master-dev
     command: ["--profile=docker", "--cmd=/edgex/cmd-redis", "-cp=consul.http://edgex-core-consul:8500"]
     networks:
       edgex-network:
@@ -349,7 +349,7 @@ services:
     restart: on-failure
 
   logging:
-    image: nexus3.edgexfoundry.org:10004/docker-support-logging-go:master
+    image: edgexfoundry/docker-support-logging-go:master-dev
     network_mode: service:logging-namespace
     environment:
       <<: *common-variables
@@ -400,7 +400,7 @@ services:
     restart: on-failure
 
   system:
-    image: nexus3.edgexfoundry.org:10004/docker-sys-mgmt-agent-go:master
+    image: edgexfoundry/docker-sys-mgmt-agent-go:master-dev
     network_mode: service:system-namespace
     environment:
       <<: *common-variables
@@ -450,7 +450,7 @@ services:
     restart: on-failure
 
   notifications:
-    image: nexus3.edgexfoundry.org:10004/docker-support-notifications-go:master
+    image: edgexfoundry/docker-support-notifications-go:master-dev
     network_mode: service:notifications-namespace
     environment:
       <<: *common-variables
@@ -499,7 +499,7 @@ services:
     restart: on-failure
 
   metadata:
-    image: nexus3.edgexfoundry.org:10004/docker-core-metadata-go:master
+    image: edgexfoundry/docker-core-metadata-go:master-dev
     network_mode: service:metadata-namespace
     environment:
       <<: *common-variables
@@ -549,7 +549,7 @@ services:
     restart: on-failure
 
   data:
-    image: nexus3.edgexfoundry.org:10004/docker-core-data-go:master
+    image: edgexfoundry/docker-core-data-go:master-dev
     network_mode: service:data-namespace
     environment:
       <<: *common-variables
@@ -597,7 +597,7 @@ services:
     restart: on-failure
 
   command:
-    image: nexus3.edgexfoundry.org:10004/docker-core-command-go:master
+    image: edgexfoundry/docker-core-command-go:master-dev
     network_mode: service:data-namespace
     environment:
       <<: *common-variables
@@ -647,7 +647,7 @@ services:
     restart: on-failure
 
   scheduler:
-    image: nexus3.edgexfoundry.org:10004/docker-support-scheduler-go:master
+    image: edgexfoundry/docker-support-scheduler-go:master-dev
     network_mode: service:scheduler-namespace
     environment:
       <<: *common-variables
@@ -695,7 +695,7 @@ services:
     restart: on-failure
 
   app-service-rules:
-    image: nexus3.edgexfoundry.org:10004/docker-app-service-configurable:master
+    image: edgexfoundry/docker-app-service-configurable:master-dev
     network_mode: service:app-service-rules-namespace
     entrypoint: ["/app-service-configurable"]
     command: ["--registry","--confdir=/res", "--skipVersionCheck=true"]
@@ -797,7 +797,7 @@ services:
     restart: on-failure
 
   device-virtual:
-    image: nexus3.edgexfoundry.org:10004/docker-device-virtual-go:master
+    image: edgexfoundry/docker-device-virtual-go:0.0.0-dev
     network_mode: service:device-virtual-namespace
     depends_on:
       - data
