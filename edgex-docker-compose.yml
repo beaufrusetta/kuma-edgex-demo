@@ -59,16 +59,8 @@ services:
         - 'KONG_DATABASE=postgres'
         - 'KONG_PG_HOST=kong-db'
         - 'KONG_PG_PASSWORD=${KONG_POSTGRES_PASSWORD:-kong}'
-    command: >
-      /bin/sh -cx 
-      'until /consul/scripts/consul-svc-healthy.sh kong-db;
-         do sleep 1;
-      done && kong migrations bootstrap;
-      kong migrations list;
-      code=$$?;
-      if [ $$code -eq 5 ]; then
-        kong migrations up && kong migrations finish;
-      fi'
+    command: 
+      - kong migrations bootstrap
     volumes:
       - consul-scripts:/consul/scripts:ro,z
     depends_on:
@@ -182,7 +174,7 @@ services:
     command:
       - run
       - -c=/etc/kuma/kuma-cp.defaults.yaml
-      - --log-level=info
+      - --log-level=debug
     environment:
       - KUMA_GENERAL_ADVERTISED_HOSTNAME=kuma-control-plane
       - KUMA_DATAPLANE_TOKEN_SERVER_PUBLIC_ENABLED=true
@@ -306,7 +298,7 @@ services:
     restart: on-failure
     
   consul:
-    image: consul:1.3.1
+    image: edgexfoundry/docker-edgex-consul:0.0.0
     network_mode: service:consul-namespace
     volumes:
       - log-data:/edgex/logs
@@ -345,7 +337,7 @@ services:
   # ---------------------------------------------------------------------------
 
   config-seed:
-    image: nexus3.edgexfoundry.org:10004/docker-core-config-seed-go:master
+    image: edgexfoundry/docker-core-config-seed-go:master-dev
     command: ["--profile=docker", "--cmd=/edgex/cmd-redis", "-cp=consul.http://edgex-core-consul:8500"]
     networks:
       edgex-network:
@@ -428,7 +420,6 @@ services:
     restart: on-failure
 
   logging:
-    # image: nexus3.edgexfoundry.org:10004/docker-support-logging-go:master
     image: edgexfoundry/docker-support-logging-go:master-dev
     network_mode: service:logging-namespace
     environment:
@@ -466,47 +457,47 @@ services:
   #
   # ---------------------------------------------------------------------------
 
-  # system-namespace:
-  #   image: busybox:1.31.0
-  #   command: ["sleep", "infinity"]
-  #   ports:
-  #     - "48090:58090"
-  #   networks:
-  #     edgex-network:
-  #       aliases:
-  #         - edgex-sys-mgmt-agent
-  #   depends_on:
-  #     - kuma-control-plane
-  #   restart: on-failure
+  system-namespace:
+    image: busybox:1.31.0
+    command: ["sleep", "infinity"]
+    ports:
+      - "48090:58090"
+    networks:
+      edgex-network:
+        aliases:
+          - edgex-sys-mgmt-agent
+    depends_on:
+      - kuma-control-plane
+    restart: on-failure
 
-  # system:
-  #   image: nexus3.edgexfoundry.org:10004/docker-sys-mgmt-agent-go:master
-  #   network_mode: service:system-namespace
-  #   environment:
-  #     <<: *common-variables
-  #   volumes:
-  #     - /var/run/docker.sock:/var/run/docker.sock:z
-  #   depends_on:
-  #     - logging
-  #     - system-namespace
+  system:
+    image: edgexfoundry/docker-sys-mgmt-agent-go:master-dev
+    network_mode: service:system-namespace
+    environment:
+      <<: *common-variables
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:z
+    depends_on:
+      - logging
+      - system-namespace
 
-  # system-sidecar:
-  #   image: kuma/kuma-dp:0.3.2
-  #   command:
-  #     - run
-  #     - --log-level=info
-  #   environment:
-  #     - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
-  #     - KUMA_DATAPLANE_MESH=default
-  #     - KUMA_DATAPLANE_NAME=edgex-sys-mgmt-agent
-  #     - KUMA_DATAPLANE_ADMIN_PORT=9901
-  #     - KUMA_DATAPLANE_RUNTIME_TOKEN_PATH=/sidecar-data/edgex-sys-mgmt-agent/token
-  #   network_mode: service:system-namespace
-  #   depends_on:
-  #     - system-namespace
-  #   restart: on-failure
-  #   volumes:
-  #     - sidecar-data:/sidecar-data
+  system-sidecar:
+    image: kuma/kuma-dp:0.3.2
+    command:
+      - run
+      - --log-level=info
+    environment:
+      - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
+      - KUMA_DATAPLANE_MESH=default
+      - KUMA_DATAPLANE_NAME=edgex-sys-mgmt-agent
+      - KUMA_DATAPLANE_ADMIN_PORT=9901
+      - KUMA_DATAPLANE_RUNTIME_TOKEN_PATH=/sidecar-data/edgex-sys-mgmt-agent/token
+    network_mode: service:system-namespace
+    depends_on:
+      - system-namespace
+    restart: on-failure
+    volumes:
+      - sidecar-data:/sidecar-data
 
   # ---------------------------------------------------------------------------
   # EdgeX - Notification Service
@@ -516,46 +507,46 @@ services:
   #
   # ---------------------------------------------------------------------------
   
-  # notifications-namespace:
-  #   image: busybox:1.31.0
-  #   command: ["sleep", "infinity"]
-  #   ports:
-  #     - "48060:58060"
-  #   networks:
-  #     edgex-network:
-  #       aliases:
-  #         - edgex-support-notifications
-  #   depends_on:
-  #     - kuma-control-plane
-  #   restart: on-failure
+  notifications-namespace:
+    image: busybox:1.31.0
+    command: ["sleep", "infinity"]
+    ports:
+      - "48060:58060"
+    networks:
+      edgex-network:
+        aliases:
+          - edgex-support-notifications
+    depends_on:
+      - kuma-control-plane
+    restart: on-failure
 
-  # notifications:
-  #   image: nexus3.edgexfoundry.org:10004/docker-support-notifications-go:master
-  #   network_mode: service:notifications-namespace
-  #   environment:
-  #     <<: *common-variables
-  #   depends_on:
-  #     - logging
-  #     - redis
-  #     - notifications-namespace
+  notifications:
+    image: edgexfoundry/docker-support-notifications-go:master-dev
+    network_mode: service:notifications-namespace
+    environment:
+      <<: *common-variables
+    depends_on:
+      - logging
+      - redis
+      - notifications-namespace
   
-  # notifications-sidecar:
-  #   image: kuma/kuma-dp:0.3.2
-  #   command:
-  #     - run
-  #     - --log-level=info
-  #   environment:
-  #     - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
-  #     - KUMA_DATAPLANE_MESH=default
-  #     - KUMA_DATAPLANE_NAME=edgex-support-notifications
-  #     - KUMA_DATAPLANE_ADMIN_PORT=9901
-  #     - KUMA_DATAPLANE_RUNTIME_TOKEN_PATH=/sidecar-data/edgex-support-notifications/token
-  #   network_mode: service:notifications-namespace
-  #   depends_on:
-  #     - notifications-namespace
-  #   restart: on-failure
-  #   volumes:
-  #     - sidecar-data:/sidecar-data
+  notifications-sidecar:
+    image: kuma/kuma-dp:0.3.2
+    command:
+      - run
+      - --log-level=info
+    environment:
+      - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
+      - KUMA_DATAPLANE_MESH=default
+      - KUMA_DATAPLANE_NAME=edgex-support-notifications
+      - KUMA_DATAPLANE_ADMIN_PORT=9901
+      - KUMA_DATAPLANE_RUNTIME_TOKEN_PATH=/sidecar-data/edgex-support-notifications/token
+    network_mode: service:notifications-namespace
+    depends_on:
+      - notifications-namespace
+    restart: on-failure
+    volumes:
+      - sidecar-data:/sidecar-data
 
   # ---------------------------------------------------------------------------
   # EdgeX - Metadata Service
@@ -579,7 +570,6 @@ services:
     restart: on-failure
 
   metadata:
-    # image: nexus3.edgexfoundry.org:10004/docker-core-metadata-go:master
     image: edgexfoundry/docker-core-metadata-go:master-dev
     network_mode: service:metadata-namespace
     environment:
@@ -630,7 +620,6 @@ services:
     restart: on-failure
 
   data:
-    # image: nexus3.edgexfoundry.org:10004/docker-core-data-go:master
     image: edgexfoundry/docker-core-data-go:master-dev
     network_mode: service:data-namespace
     environment:
@@ -665,45 +654,45 @@ services:
   #
   # ---------------------------------------------------------------------------
   
-  # command-namespace:
-  #   image: busybox:1.31.0
-  #   command: ["sleep", "infinity"]
-  #   ports:
-  #     - "48082:58082"
-  #   networks:
-  #     edgex-network:
-  #       aliases:
-  #         - edgex-core-command
-  #   depends_on:
-  #     - kuma-control-plane
-  #   restart: on-failure
+  command-namespace:
+    image: busybox:1.31.0
+    command: ["sleep", "infinity"]
+    ports:
+      - "48082:58082"
+    networks:
+      edgex-network:
+        aliases:
+          - edgex-core-command
+    depends_on:
+      - kuma-control-plane
+    restart: on-failure
 
-  # command:
-  #   image: nexus3.edgexfoundry.org:10004/docker-core-command-go:master
-  #   network_mode: service:data-namespace
-  #   environment:
-  #     <<: *common-variables
-  #   depends_on:
-  #     - metadata
-  #     - command-namespace
+  command:
+    image: edgexfoundry/docker-core-command-go:master-dev
+    network_mode: service:data-namespace
+    environment:
+      <<: *common-variables
+    depends_on:
+      - metadata
+      - command-namespace
     
-  # command-sidecar:
-  #   image: kuma/kuma-dp:0.3.2
-  #   command:
-  #     - run
-  #     - --log-level=info
-  #   environment:
-  #     - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
-  #     - KUMA_DATAPLANE_MESH=default
-  #     - KUMA_DATAPLANE_NAME=edgex-core-command
-  #     - KUMA_DATAPLANE_ADMIN_PORT=9901
-  #     - KUMA_DATAPLANE_RUNTIME_TOKEN_PATH=/sidecar-data/edgex-core-command/token
-  #   network_mode: service:command-namespace
-  #   depends_on:
-  #     - command-namespace
-  #   restart: on-failure
-  #   volumes:
-  #     - sidecar-data:/sidecar-data
+  command-sidecar:
+    image: kuma/kuma-dp:0.3.2
+    command:
+      - run
+      - --log-level=info
+    environment:
+      - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
+      - KUMA_DATAPLANE_MESH=default
+      - KUMA_DATAPLANE_NAME=edgex-core-command
+      - KUMA_DATAPLANE_ADMIN_PORT=9901
+      - KUMA_DATAPLANE_RUNTIME_TOKEN_PATH=/sidecar-data/edgex-core-command/token
+    network_mode: service:command-namespace
+    depends_on:
+      - command-namespace
+    restart: on-failure
+    volumes:
+      - sidecar-data:/sidecar-data
 
   # ---------------------------------------------------------------------------
   # EdgeX - Scheduler Service
@@ -713,45 +702,47 @@ services:
   #
   # ---------------------------------------------------------------------------
   
-  # scheduler-namespace:
-  #   image: busybox:1.31.0
-  #   command: ["sleep", "infinity"]
-  #   ports:
-  #     - "48085:58085"
-  #   networks:
-  #     edgex-network:
-  #       aliases:
-  #         - edgex-support-scheduler
-  #   depends_on:
-  #     - kuma-control-plane
-  #   restart: on-failure
+  scheduler-namespace:
+    image: busybox:1.31.0
+    command: ["sleep", "infinity"]
+    expose:
+      - "48085"
+    ports:
+      - "48085:58085"
+    networks:
+      edgex-network:
+        aliases:
+          - edgex-support-scheduler
+    depends_on:
+      - kuma-control-plane
+    restart: on-failure
 
-  # scheduler:
-  #   image: nexus3.edgexfoundry.org:10004/docker-support-scheduler-go:master
-  #   network_mode: service:scheduler-namespace
-  #   environment:
-  #     <<: *common-variables
-  #   depends_on:
-  #     - metadata
-  #     - scheduler-namespace
+  scheduler:
+    image: edgexfoundry/docker-support-scheduler-go:master-dev
+    network_mode: service:scheduler-namespace
+    environment:
+      <<: *common-variables
+    depends_on:
+      - metadata
+      - scheduler-namespace
 
-  # scheduler-sidecar:
-  #   image: kuma/kuma-dp:0.3.2
-  #   command:
-  #     - run
-  #     - --log-level=info
-  #   environment:
-  #     - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
-  #     - KUMA_DATAPLANE_MESH=default
-  #     - KUMA_DATAPLANE_NAME=edgex-support-scheduler
-  #     - KUMA_DATAPLANE_ADMIN_PORT=9901
-  #     - KUMA_DATAPLANE_RUNTIME_TOKEN_PATH=/sidecar-data/edgex-support-scheduler/token
-  #   network_mode: service:scheduler-namespace
-  #   depends_on:
-  #     - scheduler-namespace
-  #   restart: on-failure
-  #   volumes:
-  #     - sidecar-data:/sidecar-data
+  scheduler-sidecar:
+    image: kuma/kuma-dp:0.3.2
+    command:
+      - run
+      - --log-level=info
+    environment:
+      - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
+      - KUMA_DATAPLANE_MESH=default
+      - KUMA_DATAPLANE_NAME=edgex-support-scheduler
+      - KUMA_DATAPLANE_ADMIN_PORT=9901
+      - KUMA_DATAPLANE_RUNTIME_TOKEN_PATH=/sidecar-data/edgex-support-scheduler/token
+    network_mode: service:scheduler-namespace
+    depends_on:
+      - scheduler-namespace
+    restart: on-failure
+    volumes:
+      - sidecar-data:/sidecar-data
 
   # ---------------------------------------------------------------------------
   # EdgeX - App Service Rules Service
@@ -775,7 +766,7 @@ services:
     restart: on-failure
 
   app-service-rules:
-    image: nexus3.edgexfoundry.org:10004/docker-app-service-configurable:master
+    image: edgexfoundry/docker-app-service-configurable:master-dev
     network_mode: service:app-service-rules-namespace
     entrypoint: ["/app-service-configurable"]
     command: ["--registry","--confdir=/res", "--skipVersionCheck=true"]
@@ -817,43 +808,43 @@ services:
   #
   # ---------------------------------------------------------------------------
   
-  # rulesengine-namespace:
-  #   image: busybox:1.31.0
-  #   command: ["sleep", "infinity"]
-  #   ports:
-  #     - "48075:58075"
-  #   networks:
-  #     edgex-network:
-  #       aliases:
-  #         - edgex-support-rulesengine
-  #   depends_on:
-  #     - kuma-control-plane
-  #   restart: on-failure
+  rulesengine-namespace:
+    image: busybox:1.31.0
+    command: ["sleep", "infinity"]
+    ports:
+      - "48075:58075"
+    networks:
+      edgex-network:
+        aliases:
+          - edgex-support-rulesengine
+    depends_on:
+      - kuma-control-plane
+    restart: on-failure
   
-  # rulesengine:
-  #   image: nexus3.edgexfoundry.org:10004/docker-support-rulesengine:master
-  #   network_mode: service:rulesengine-namespace
-  #   depends_on:
-  #     - app-service-rules
-  #     - rulesengine-namespace
+  rulesengine:
+    image: nexus3.edgexfoundry.org:10004/docker-support-rulesengine:master
+    network_mode: service:rulesengine-namespace
+    depends_on:
+      - app-service-rules
+      - rulesengine-namespace
   
-  # rulesengine-sidecar:
-  #   image: kuma/kuma-dp:0.3.2
-  #   command:
-  #     - run
-  #     - --log-level=info
-  #   environment:
-  #     - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
-  #     - KUMA_DATAPLANE_MESH=default
-  #     - KUMA_DATAPLANE_NAME=edgex-support-rulesengine
-  #     - KUMA_DATAPLANE_ADMIN_PORT=9901
-  #     - KUMA_DATAPLANE_RUNTIME_TOKEN_PATH=/sidecar-data/edgex-support-rulesengine/token
-  #   network_mode: service:rulesengine-namespace
-  #   depends_on:
-  #     - rulesengine-namespace
-  #   restart: on-failure
-  #   volumes:
-  #     - sidecar-data:/sidecar-data
+  rulesengine-sidecar:
+    image: kuma/kuma-dp:0.3.2
+    command:
+      - run
+      - --log-level=info
+    environment:
+      - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
+      - KUMA_DATAPLANE_MESH=default
+      - KUMA_DATAPLANE_NAME=edgex-support-rulesengine
+      - KUMA_DATAPLANE_ADMIN_PORT=9901
+      - KUMA_DATAPLANE_RUNTIME_TOKEN_PATH=/sidecar-data/edgex-support-rulesengine/token
+    network_mode: service:rulesengine-namespace
+    depends_on:
+      - rulesengine-namespace
+    restart: on-failure
+    volumes:
+      - sidecar-data:/sidecar-data
 
   # ---------------------------------------------------------------------------
   # EdgeX - Device Virtual Service
@@ -863,44 +854,44 @@ services:
   #
   # ---------------------------------------------------------------------------
 
-  # device-virtual-namespace:
-  #   image: busybox:1.31.0
-  #   command: ["sleep", "infinity"]
-  #   ports:
-  #     - "49990:59990"
-  #   networks:
-  #     edgex-network:
-  #       aliases:
-  #         - edgex-device-virtual
-  #   depends_on:
-  #     - kuma-control-plane
-  #   restart: on-failure
+  device-virtual-namespace:
+    image: busybox:1.31.0
+    command: ["sleep", "infinity"]
+    ports:
+      - "49990:59990"
+    networks:
+      edgex-network:
+        aliases:
+          - edgex-device-virtual
+    depends_on:
+      - kuma-control-plane
+    restart: on-failure
 
-  # device-virtual:
-  #   image: nexus3.edgexfoundry.org:10004/docker-device-virtual-go:master
-  #   network_mode: service:device-virtual-namespace
-  #   depends_on:
-  #     - data
-  #     - command
-  #     - device-virtual-namespace
+  device-virtual:
+    image: edgexfoundry/docker-device-virtual-go:0.0.0-dev
+    network_mode: service:device-virtual-namespace
+    depends_on:
+      - data
+      - command
+      - device-virtual-namespace
   
-  # device-virtual-sidecar:
-  #   image: kuma/kuma-dp:0.3.2
-  #   command:
-  #     - run
-  #     - --log-level=info
-  #   environment:
-  #     - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
-  #     - KUMA_DATAPLANE_MESH=default
-  #     - KUMA_DATAPLANE_NAME=edgex-device-virtual
-  #     - KUMA_DATAPLANE_ADMIN_PORT=9901
-  #     - KUMA_DATAPLANE_RUNTIME_TOKEN_PATH=/sidecar-data/edgex-device-virtual/token
-  #   network_mode: service:device-virtual-namespace
-  #   depends_on:
-  #     - device-virtual-namespace
-  #   restart: on-failure
-  #   volumes:
-  #     - sidecar-data:/sidecar-data
+  device-virtual-sidecar:
+    image: kuma/kuma-dp:0.3.2
+    command:
+      - run
+      - --log-level=info
+    environment:
+      - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
+      - KUMA_DATAPLANE_MESH=default
+      - KUMA_DATAPLANE_NAME=edgex-device-virtual
+      - KUMA_DATAPLANE_ADMIN_PORT=9901
+      - KUMA_DATAPLANE_RUNTIME_TOKEN_PATH=/sidecar-data/edgex-device-virtual/token
+    network_mode: service:device-virtual-namespace
+    depends_on:
+      - device-virtual-namespace
+    restart: on-failure
+    volumes:
+      - sidecar-data:/sidecar-data
 
 # -----------------------------------------------------------------------------
 # EdgeX - Network Definition
