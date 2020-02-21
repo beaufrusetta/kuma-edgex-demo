@@ -1,0 +1,8 @@
+type: Dataplane
+mesh: default
+name: edgex-support-logging
+networking:
+  inbound:
+    - interface: 127.0.0.1:58061:48061
+      tags:
+        service: edgex-support-logging
