@@ -93,25 +93,25 @@ networking:
       tags:
         service: edgex-support-logging"
 
-# create_dataplane "edgex-sys-mgmt-agent" "
-# type: Dataplane
-# mesh: default
-# name: edgex-sys-mgmt-agent
-# networking:
-#   inbound:
-#     - interface: {{ IP }}:58090:48090
-#       tags:
-#         service: edgex-sys-mgmt-agent"
+create_dataplane "edgex-sys-mgmt-agent" "
+type: Dataplane
+mesh: default
+name: edgex-sys-mgmt-agent
+networking:
+  inbound:
+    - interface: {{ IP }}:58090:48090
+      tags:
+        service: edgex-sys-mgmt-agent"
 
-# create_dataplane "edgex-support-notifications" "
-# type: Dataplane
-# mesh: default
-# name: edgex-support-notifications
-# networking:
-#   inbound:
-#     - interface: {{ IP }}:58060:48060
-#       tags:
-#         service: edgex-support-notifications"
+create_dataplane "edgex-support-notifications" "
+type: Dataplane
+mesh: default
+name: edgex-support-notifications
+networking:
+  inbound:
+    - interface: {{ IP }}:58060:48060
+      tags:
+        service: edgex-support-notifications"
 
 create_dataplane "edgex-core-metadata" "
 type: Dataplane
@@ -136,25 +136,25 @@ networking:
       tags:
         service: edgex-core-data"
 
-# create_dataplane "edgex-core-command" "
-# type: Dataplane
-# mesh: default
-# name: edgex-core-command
-# networking:
-#   inbound:
-#     - interface: {{ IP }}:58082:48082
-#       tags:
-#         service: edgex-core-command"
+create_dataplane "edgex-core-command" "
+type: Dataplane
+mesh: default
+name: edgex-core-command
+networking:
+  inbound:
+    - interface: {{ IP }}:58082:48082
+      tags:
+        service: edgex-core-command"
 
-# create_dataplane "edgex-support-scheduler" "
-# type: Dataplane
-# mesh: default
-# name: edgex-support-scheduler
-# networking:
-#   inbound:
-#     - interface: {{ IP }}:58085:48085
-#       tags:
-#         service: edgex-support-scheduler"
+create_dataplane "edgex-support-scheduler" "
+type: Dataplane
+mesh: default
+name: edgex-support-scheduler
+networking:
+  inbound:
+    - interface: {{ IP }}:58085:48085
+      tags:
+        service: edgex-support-scheduler"
 
 create_dataplane "edgex-app-service-configurable-rules" "
 type: Dataplane
@@ -166,22 +166,22 @@ networking:
       tags:
         service: edgex-app-service-configurable-rules"
 
-# create_dataplane "edgex-support-rulesengine" "
-# type: Dataplane
-# mesh: default
-# name: edgex-support-rulesengine
-# networking:
-#   inbound:
-#     - interface: {{ IP }}:58075:48075
-#       tags:
-#         service: edgex-support-rulesengine"
+create_dataplane "edgex-support-rulesengine" "
+type: Dataplane
+mesh: default
+name: edgex-support-rulesengine
+networking:
+  inbound:
+    - interface: {{ IP }}:58075:48075
+      tags:
+        service: edgex-support-rulesengine"
 
-# create_dataplane "edgex-device-virtual" "
-# type: Dataplane
-# mesh: default
-# name: edgex-device-virtual
-# networking:
-#   inbound:
-#     - interface: {{ IP }}:59990:49990
-#       tags:
-#         service: edgex-device-virtual"
+create_dataplane "edgex-device-virtual" "
+type: Dataplane
+mesh: default
+name: edgex-device-virtual
+networking:
+  inbound:
+    - interface: {{ IP }}:59990:49990
+      tags:
+        service: edgex-device-virtual"
