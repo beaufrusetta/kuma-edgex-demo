@@ -60,7 +60,9 @@ services:
         - 'KONG_PG_HOST=kong-db'
         - 'KONG_PG_PASSWORD=${KONG_POSTGRES_PASSWORD:-kong}'
     command: 
-      - kong migrations bootstrap
+      - kong 
+      - migrations 
+      - bootstrap
     volumes:
       - consul-scripts:/consul/scripts:ro,z
     depends_on:
@@ -89,10 +91,6 @@ services:
         - 'KONG_ADMIN_ERROR_LOG=/dev/stderr'
         - 'KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl'
     restart: on-failure
-    command: >
-      /bin/sh -c 
-      "until /consul/scripts/consul-svc-healthy.sh kong-migrations; do sleep 1; done;
-      /docker-entrypoint.sh kong docker-start"
     volumes:
       - consul-scripts:/consul/scripts:ro,z
     depends_on:
@@ -120,6 +118,8 @@ services:
     build:
       context: .
       dockerfile: base-image.dockerfile
+    networks:
+      edgex-network: {}
 
   # ---------------------------------------------------------------------------
   # Kuma - Control Plane Image ------------------------------------------------
@@ -138,6 +138,8 @@ services:
     build:
       context: .
       dockerfile: kuma-cp.dockerfile
+    networks:
+      edgex-network: {}
 
   # ---------------------------------------------------------------------------
   # Kuma - Data Plane Image ---------------------------------------------------
@@ -150,6 +152,8 @@ services:
     build:
       context: .
       dockerfile: kuma-dp.dockerfile
+    networks:
+      edgex-network: {}
 
   # ---------------------------------------------------------------------------
   # Kuma - Control CLI Image --------------------------------------------------
@@ -160,6 +164,8 @@ services:
     build:
       context: .
       dockerfile: kumactl.dockerfile
+    networks:
+      edgex-network: {}
 
   # ---------------------------------------------------------------------------
   # Kuma - Control Plane ------------------------------------------------------
@@ -251,10 +257,12 @@ services:
   #   the consul configuration files, however, those files are now injected 
   #   into the consul image during build time.
   #
+  #   https://github.com/edgexfoundry/docker-edgex-volume
+  #
   # ---------------------------------------------------------------------------
 
   volume:
-    image: nexus3.edgexfoundry.org:10004/docker-edgex-volume:master
+    image: edgexfoundry/docker-edgex-volume:0.0.0
     container_name: edgex-files
     networks:
       edgex-network: {}
@@ -280,6 +288,8 @@ services:
   #     "network_mode" allows the container to attach to the network 
   #     namespace of the specified service. This is very similar to attaching 
   #     a container to a docker network. 
+  #
+  #   https://github.com/edgexfoundry/docker-edgex-consul
   #
   # ---------------------------------------------------------------------------
 
@@ -332,7 +342,7 @@ services:
   # EdgeX - Config Seed
   # ---------------------------------------------------------------------------
   # 
-  #   (placeholder)
+  #   https://github.com/edgexfoundry/edgex-go/tree/master/cmd/config-seed
   # 
   # ---------------------------------------------------------------------------
 
@@ -402,7 +412,7 @@ services:
   # EdgeX - Logging Service
   # ---------------------------------------------------------------------------
   #
-  #   (placeholder)
+  #   https://github.com/edgexfoundry/edgex-go/tree/master/cmd/support-logging
   #
   # ---------------------------------------------------------------------------
   
@@ -453,7 +463,7 @@ services:
   # EdgeX - System Management Service
   # ---------------------------------------------------------------------------
   #
-  #   (placeholder)
+  #   https://github.com/edgexfoundry/edgex-go/tree/master/cmd/sys-mgmt-agent
   #
   # ---------------------------------------------------------------------------
 
@@ -766,7 +776,7 @@ services:
     restart: on-failure
 
   app-service-rules:
-    image: edgexfoundry/docker-app-service-configurable:master-dev
+    image: edgexfoundry/docker-app-service-configurable:dev
     network_mode: service:app-service-rules-namespace
     entrypoint: ["/app-service-configurable"]
     command: ["--registry","--confdir=/res", "--skipVersionCheck=true"]
@@ -868,7 +878,7 @@ services:
     restart: on-failure
 
   device-virtual:
-    image: edgexfoundry/docker-device-virtual-go:0.0.0-dev
+    image: nexus3.edgexfoundry.org:10004/docker-device-virtual-go:master
     network_mode: service:device-virtual-namespace
     depends_on:
       - data
