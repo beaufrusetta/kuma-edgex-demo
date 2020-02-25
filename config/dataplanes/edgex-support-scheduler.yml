@@ -1,0 +1,8 @@
+type: Dataplane
+mesh: default
+name: edgex-support-scheduler
+networking:
+  inbound:
+    - interface: IP:58085:48085
+      tags:
+        service: edgex-support-scheduler

@@ -1,0 +1,8 @@
+type: Dataplane
+mesh: default
+name: edgex-core-command
+networking:
+  inbound:
+    - interface: IP:58082:48082
+      tags:
+        service: edgex-core-command

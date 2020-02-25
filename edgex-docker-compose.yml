@@ -239,6 +239,7 @@ services:
       - sidecar-data:/sidecar-data:rw
       - ./scripts/kuma-installer.sh:/kuma/kuma-installer.sh
       - ./certs/client:/certs/client
+      - ./config/dataplanes:/kuma/dataplanes
     user: root
     command:
       - /kuma/kuma-installer.sh

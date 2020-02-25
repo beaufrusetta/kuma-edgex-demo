@@ -1,0 +1,8 @@
+type: Dataplane
+mesh: default
+name: edgex-sys-mgmt-agent
+networking:
+  inbound:
+    - interface: IP:58090:48090
+      tags:
+        service: edgex-sys-mgmt-agent

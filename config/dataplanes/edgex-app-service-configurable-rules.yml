@@ -1,0 +1,8 @@
+type: Dataplane
+mesh: default
+name: edgex-app-service-configurable-rules
+networking:
+  inbound:
+    - interface: IP:58100:48100
+      tags:
+        service: edgex-app-service-configurable-rules

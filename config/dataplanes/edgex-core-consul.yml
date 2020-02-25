@@ -1,0 +1,11 @@
+type: Dataplane
+mesh: default
+name: edgex-core-consul
+networking:
+  inbound:
+    - interface: IP:58400:8400
+      tags:
+        service: edgex-core-consul
+    - interface: IP:58500:8500
+      tags:
+        service: edgex-core-consul

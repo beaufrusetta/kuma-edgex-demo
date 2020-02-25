@@ -1,0 +1,8 @@
+type: Dataplane
+mesh: default
+name: edgex-device-virtual
+networking:
+  inbound:
+    - interface: IP:59990:49990
+      tags:
+        service: edgex-device-virtual

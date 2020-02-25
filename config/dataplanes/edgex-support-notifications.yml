@@ -1,0 +1,8 @@
+type: Dataplane
+mesh: default
+name: edgex-support-notifications
+networking:
+  inbound:
+    - interface: IP:58060:48060
+      tags:
+        service: edgex-support-notifications

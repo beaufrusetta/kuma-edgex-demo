@@ -1,0 +1,8 @@
+type: Dataplane
+mesh: default
+name: edgex-support-rulesengine
+networking:
+  inbound:
+    - interface: IP:58075:48075
+      tags:
+        service: edgex-support-rulesengine

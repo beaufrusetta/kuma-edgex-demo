@@ -1,0 +1,11 @@
+type: Dataplane
+mesh: default
+name: edgex-core-data
+networking:
+  inbound:
+    - interface: IP:58080:48080
+      tags:
+        service: edgex-core-data
+    - interface: IP:55563:5563
+      tags:
+        service: edgex-core-data

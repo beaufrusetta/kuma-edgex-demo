@@ -1,0 +1,8 @@
+type: Dataplane
+mesh: default
+name: edgex-core-metadata
+networking:
+  inbound:
+    - interface: IP:58081:48081
+      tags:
+        service: edgex-core-metadata

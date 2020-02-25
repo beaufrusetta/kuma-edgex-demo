@@ -1,0 +1,8 @@
+type: Dataplane
+mesh: default
+name: edgex-redis
+networking:
+  inbound:
+    - interface: IP:56379:6379
+      tags:
+        service: edgex-redis
