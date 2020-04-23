@@ -1,0 +1,410 @@
+version: '3.5'
+
+# -----------------------------------------------------------------------------
+# Env Variables ---------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+x-common-env-variables: &common-variables
+  EDGEX_SECURITY_SECRET_STORE: "false"
+  edgex_registry: consul://edgex-core-consul:8500
+  Clients_CoreData_Host: edgex-core-data
+  Clients_Logging_Host: edgex-support-logging
+  Logging_EnableRemote: "true"
+
+# -----------------------------------------------------------------------------
+# EdgeX Volumes ---------------------------------------------------------------
+# -----------------------------------------------------------------------------
+
+volumes:
+  db-data:
+  log-data:
+  consul-config:
+  consul-data:
+  consul-scripts:
+  vault-init:
+  vault-config:
+  vault-file:
+  vault-logs:
+  sidecar-data: 
+  # non-shared volumes
+  portainer_data:
+  secrets-setup-cache:
+
+# -----------------------------------------------------------------------------
+# EdgeX Services w/Service Mesh (Kuma) ----------------------------------------
+# -----------------------------------------------------------------------------
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # Kuma - Base Image ---------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # 
+  #   This is the base image I'm using to build the other images off of with 
+  #   multi-stage builds (of sorts). I use this one to basically download 
+  #   the pre-compiled binaries a single time, extract the binaries I want, 
+  #   and then load them to a local dir in that image.
+  #
+  #   As you can see in the dockerfile declarations after this one, I use the 
+  #   COPY command to bring in the specific binaries to the 3 images below.
+  # 
+  # ---------------------------------------------------------------------------
+
+  kuma-base-image:
+    image: kuma/base-image:0.4.0
+    build:
+      context: .
+      dockerfile: base-image.dockerfile
+    networks:
+      edgex-network: {}
+  
+  # ---------------------------------------------------------------------------
+  # Kuma - Control Plane Image ------------------------------------------------
+  # ---------------------------------------------------------------------------
+  #
+  #   This is the image that holds and runs `kuma-cp`. This is the main 
+  #   control plane binary that manages all of the data planes attached to 
+  #   all the networked EdgeX services defined below.
+  #
+  #   https://kuma.io/docs/0.3.2/documentation/overview/
+  #
+  # ---------------------------------------------------------------------------
+
+  kuma-cp-image:
+    image: kuma/kuma-cp:0.4.0
+    build:
+      context: .
+      dockerfile: kuma-cp.dockerfile
+    networks:
+      edgex-network: {}
+
+  # ---------------------------------------------------------------------------
+  # Kuma - Data Plane Image ---------------------------------------------------
+  # ---------------------------------------------------------------------------
+  # (placeholder)
+  # ---------------------------------------------------------------------------
+
+  kuma-dp-image:
+    image: kuma/kuma-dp:0.4.0
+    build:
+      context: .
+      dockerfile: kuma-dp.dockerfile
+    networks:
+      edgex-network: {}
+
+  # ---------------------------------------------------------------------------
+  # Kuma - Control CLI Image --------------------------------------------------
+  # ---------------------------------------------------------------------------
+
+  kumactl-image:
+    image: kuma/kumactl:0.4.0
+    build:
+      context: .
+      dockerfile: kumactl.dockerfile
+    networks:
+      edgex-network: {}
+
+  # ---------------------------------------------------------------------------
+  # Kuma - Control Plane ------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  
+  kuma-control-plane:
+    image: kuma/kuma-cp:0.4.0
+    volumes:
+      - ./certs/server:/certs/server
+      - ./certs/client/cert.pem:/certs/client/cert.pem
+      - ./config:/etc/kuma
+    command:
+      - run
+      - -c=/etc/kuma/kuma-cp.defaults.yaml
+      - --log-level=debug
+    environment:
+      - KUMA_GENERAL_ADVERTISED_HOSTNAME=kuma-control-plane
+      - KUMA_DATAPLANE_TOKEN_SERVER_PUBLIC_ENABLED=true
+      - KUMA_DATAPLANE_TOKEN_SERVER_PUBLIC_INTERFACE=0.0.0.0
+      - KUMA_DATAPLANE_TOKEN_SERVER_PUBLIC_PORT=5684 # otherwise there would be conflict with local port
+      - KUMA_DATAPLANE_TOKEN_SERVER_PUBLIC_TLS_CERT_FILE=/certs/server/cert.pem
+      - KUMA_DATAPLANE_TOKEN_SERVER_PUBLIC_TLS_KEY_FILE=/certs/server/key.pem
+      - KUMA_DATAPLANE_TOKEN_SERVER_PUBLIC_CLIENT_CERTS_DIR=/certs/client
+    ports:
+      - "5678:5678"
+      - "5679:5679"
+      - "5680:5680"
+      - "5681:5681"
+      - "5682:5682"
+      - "5683:5683"
+      - "5684:5684"
+    networks:
+      edgex-network:
+        aliases:
+          - kuma-control-plane
+    restart: on-failure
+
+  # ---------------------------------------------------------------------------
+  # Kuma - Control CLI --------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  #
+  #   The use of this container is not necessary for the service mesh to run, 
+  #   I only bring this one along because it's easy to pop in to it and 
+  #   configure the policies for demo with the following syntax:
+  #
+  #     $ cat <policy.yaml file> | kumactl apply -f -
+  #
+  # ---------------------------------------------------------------------------
+
+  kumactl:
+    image: kuma/kumactl:0.4.0
+    volumes:
+    - ./policies:/kuma/policies
+    command:
+    - sh
+    - -c
+    - kumactl config control-planes add --name universal --address http://kuma-control-plane:5681 --overwrite && sleep 31536000
+    networks:
+      edgex-network: {}
+    depends_on:
+      - kuma-control-plane
+    restart: on-failure
+
+  # ---------------------------------------------------------------------------
+  # Kuma - Installer ----------------------------------------------------------
+  # ---------------------------------------------------------------------------
+  
+  kuma-installer:
+    image: kuma/kumactl:0.4.0
+    volumes: 
+      - sidecar-data:/sidecar-data:rw
+      - ./scripts/kuma-installer.sh:/kuma/kuma-installer.sh
+      - ./certs/client:/certs/client
+      - ./config/dataplanes:/kuma/dataplanes
+    user: root
+    command:
+      - /kuma/kuma-installer.sh
+    networks:
+      edgex-network: {}
+    depends_on:
+      - kuma-control-plane
+    restart: on-failure
+
+  # ---------------------------------------------------------------------------
+  # EdgeX - Volume
+  # ---------------------------------------------------------------------------
+  #
+  #   https://github.com/edgexfoundry/docker-edgex-volume
+  #
+  # ---------------------------------------------------------------------------
+
+  volume:
+    image: edgexfoundry/docker-edgex-volume:0.0.0
+    container_name: edgex-files
+    networks:
+      edgex-network: {}
+    volumes:
+      - db-data:/data:z
+      - log-data:/edgex/logs:z
+      - consul-config:/consul/config:z
+      - consul-data:/consul/data:z
+
+  # ---------------------------------------------------------------------------
+  # EdgeX - Consul
+  # ---------------------------------------------------------------------------
+  #
+  #   consul-namespace: this container is used to attach to the 
+  #     edgex-network and exposes the appropriate ports for Consul.
+  #
+  #   consul-sidecar: this container is the lightweight proxy container 
+  #     that filters all inbound/outbound network traffic. This container 
+  #     is configured via the Kuma Control Plane. 
+  #
+  #   consul: this is the container running the Consul app - it is attached 
+  #     to the consul-namespace using the "network_mode" option. Using 
+  #     "network_mode" allows the container to attach to the network 
+  #     namespace of the specified service. This is very similar to attaching 
+  #     a container to a docker network. 
+  #
+  #   https://github.com/edgexfoundry/docker-edgex-consul
+  #
+  # ---------------------------------------------------------------------------
+
+  consul-namespace:
+    image: busybox:1.31.0
+    command: ["sleep", "infinity"]
+    ports:
+      - "8400:58400"
+      - "8500:58500"
+    hostname: edgex-core-consul
+    networks:
+      edgex-network:
+        aliases:
+          - edgex-core-consul
+    depends_on:
+      - kuma-control-plane
+    restart: on-failure
+    
+  consul:
+    image: edgexfoundry/docker-edgex-consul:0.0.0
+    network_mode: service:consul-namespace
+    volumes:
+      - log-data:/edgex/logs
+      - consul-config:/consul/config
+      - consul-data:/consul/data
+    environment: 
+      - EDGEX_DB=redis
+      - EDGEX_SECURE=false
+    depends_on:
+      - volume
+
+  consul-sidecar: 
+    image: kuma/kuma-dp:0.3.2
+    build:
+      context: .
+      dockerfile: kuma-dp.dockerfile
+    command:
+      - run
+      - --log-level=info
+    environment:
+      - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
+      - KUMA_DATAPLANE_MESH=default
+      - KUMA_DATAPLANE_NAME=edgex-core-consul
+      - KUMA_DATAPLANE_ADMIN_PORT=9901
+      - KUMA_DATAPLANE_RUNTIME_TOKEN_PATH=/sidecar-data/edgex-core-consul/token
+    network_mode: service:consul-namespace
+    depends_on:
+      - consul-namespace
+    restart: on-failure
+    volumes:
+      - sidecar-data:/sidecar-data
+
+  # ---------------------------------------------------------------------------
+  # EdgeX - Config Seed
+  # ---------------------------------------------------------------------------
+  # 
+  #   https://github.com/edgexfoundry/edgex-go/tree/master/cmd/config-seed
+  # 
+  # ---------------------------------------------------------------------------
+
+  config-seed:
+    image: nexus3.edgexfoundry.org:10004/docker-core-config-seed-go:master
+    command: ["--profile=docker", "--cmd=/edgex/cmd-redis", "-cp=consul.http://edgex-core-consul:8500"]
+    networks:
+      edgex-network:
+        aliases:
+            - edgex-core-config-seed
+    environment:
+      <<: *common-variables            
+    volumes:
+      - log-data:/edgex/logs:z
+    depends_on:
+      - volume
+      - consul
+
+  # ---------------------------------------------------------------------------
+  # EdgeX - Redis
+  # ---------------------------------------------------------------------------
+  #
+  #   (placeholder)
+  #
+  # ---------------------------------------------------------------------------
+
+  redis-namespace:
+    image: busybox:1.31.0
+    command: ["sleep", "infinity"]
+    ports:
+      - "6379:56379"
+    hostname: edgex-redis
+    networks:
+      edgex-network:
+        aliases: 
+          - edgex-redis
+    depends_on: 
+      - kuma-control-plane
+    restart: on-failure
+
+  redis:
+    image: redis:5.0.7-alpine
+    network_mode: service:redis-namespace
+    volumes:
+      - db-data:/data:z
+    depends_on:
+      - volume
+
+  redis-sidecar: 
+    image: kuma/kuma-dp:0.3.2
+    command:
+      - run
+      - --log-level=info
+    environment:
+      - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
+      - KUMA_DATAPLANE_MESH=default
+      - KUMA_DATAPLANE_NAME=edgex-redis
+      - KUMA_DATAPLANE_ADMIN_PORT=9901
+      - KUMA_DATAPLANE_RUNTIME_TOKEN_PATH=/sidecar-data/edgex-redis/token
+    network_mode: service:redis-namespace
+    depends_on:
+      - redis-namespace
+    restart: on-failure
+    volumes:
+      - sidecar-data:/sidecar-data
+
+  # ---------------------------------------------------------------------------
+  # EdgeX - Logging Service
+  # ---------------------------------------------------------------------------
+  #
+  #   https://github.com/edgexfoundry/edgex-go/tree/master/cmd/support-logging
+  #
+  # ---------------------------------------------------------------------------
+  
+  logging-namespace:
+    image: busybox:1.31.0
+    command: ["sleep", "infinity"]
+    ports:
+      - "48061:58061"
+    hostname: edgex-support-logging
+    networks:
+      edgex-network:
+        aliases:
+          - edgex-support-logging
+    depends_on:
+      - kuma-control-plane
+    restart: on-failure
+
+  logging:
+    image: nexus3.edgexfoundry.org:10004/docker-support-logging-go:master
+    network_mode: service:logging-namespace
+    environment:
+      <<: *common-variables
+    volumes:
+      - log-data:/edgex/logs:z
+    depends_on:
+      - config-seed
+      - volume
+      - logging-namespace
+
+  logging-sidecar:
+    image: kuma/kuma-dp:0.3.2
+    command:
+      - run
+      - --log-level=debug
+    environment:
+      - KUMA_CONTROL_PLANE_API_SERVER_URL=http://kuma-control-plane:5681
+      - KUMA_DATAPLANE_MESH=default
+      - KUMA_DATAPLANE_NAME=edgex-support-logging
+      - KUMA_DATAPLANE_ADMIN_PORT=9901
+      - KUMA_DATAPLANE_RUNTIME_TOKEN_PATH=/sidecar-data/edgex-support-logging/token
+    network_mode: service:logging-namespace
+    depends_on:
+      - logging-namespace
+    restart: on-failure
+    volumes:
+      - sidecar-data:/sidecar-data
+
+# -----------------------------------------------------------------------------
+# EdgeX - Network Definition
+# -----------------------------------------------------------------------------
+#
+#   (placeholder)
+#
+# -----------------------------------------------------------------------------
+
+networks:
+  edgex-network: {}

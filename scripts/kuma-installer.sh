@@ -60,10 +60,12 @@ kumactl config control-planes add --name universal --address ${KUMA_CONTROL_PLAN
 #
 # Create Dataplane for all services
 #
-DATAPLANES="edgex-core-consul edgex-redis edgex-support-logging edgex-sys-mgmt-agent  \
-            edgex-support-notifications edgex-core-metadata edgex-core-data edgex-core-command \
-            edgex-support-scheduler edgex-app-service-configurable-rules edgex-support-rulesengine \
-            edgex-device-virtual"
+# DATAPLANES="edgex-core-consul edgex-redis edgex-support-logging edgex-sys-mgmt-agent  \
+#             edgex-support-notifications edgex-core-metadata edgex-core-data edgex-core-command \
+#             edgex-support-scheduler edgex-app-service-configurable-rules edgex-support-rulesengine \
+#             edgex-device-virtual"
+
+DATAPLANES="edgex-core-consul edgex-redis edgex-support-logging"
 
 for DP in ${DATAPLANES}; do 
   create_dataplane ${DP}
